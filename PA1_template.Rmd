@@ -4,15 +4,68 @@ output:
   html_document:
     keep_md: true
 ---
+- By Yang Yuzhong
 
+The activity.csv contains a total of 17,568 observation of the variables:
+
+- **steps**: Number of steps taking in a 5-minute interval (missing values are coded as NA)
+
+- **date**: The date on which the measurement was taken in YYYY-MM-DD format
+
+- **interval**: Identifier for the 5-minute interval in which measurement was taken
+
+## Loading required R packages
+
+```{r loadpackages, echo=TRUE}
+#library(dplyr)
+```
 
 ## Loading and preprocessing the data
 
+activity.csv is loaded using read.csv() function. No preprocessing is performed.
 
+```{r loadingdata, echo=TRUE}
+#activity<-read.csv("activity.csv")
+```
+
+The format of the loaded table is then changed to the following with select 
+function from dply:
+
+| date | interval | steps |
+| ---- | -------- | ----- |
+| 2012-10-01 | 0 | NA |
+| ... | ... | ... |
+
+```{r preprocessdata, echo=TRUE}
+#activity<-activity %>% 
+#select(date,interval,steps) %>%
+#mutate(steps = ifelse(is.na(steps),0,steps))
+```
 
 ## What is mean total number of steps taken per day?
 
+### 1) Histogram of total number of steps taken per day
 
+```{r histogram, echo=TRUE}
+activity.totalsteps <- activity %>% 
+    group_by(date) %>% 
+    summarize(totalsteps = sum(steps, na.rm=TRUE))
+
+#hist(activity.totalsteps$totalsteps,
+#main="Distribution of total number of steps taken per day",
+#xlab="Total number of steps taken per day (Grouped)",
+#ylab="Frequency of groups")
+```
+
+### 2) Mean and median total number of steps taken per day
+
+To substitute a paragraph with mean and median values (based on the coursera lesson)
+
+```{r meanmedian, echo=TRUE}
+mean(activity.totalsteps$totalsteps)
+
+median(activity.totalsteps$totalsteps)
+```
 
 ## What is the average daily activity pattern?
 
