@@ -33,7 +33,7 @@ library(dplyr)
 ```
 
 ```r
-library(lubridate)
+library(ggplot2)
 options(scipen = 1, digits = 2)
 ```
 
@@ -116,16 +116,13 @@ In order to plot the time series for the average daily pattern,
 the column _interval_ from the dataset must be converted from numeric data type
 to time type. 
 
-TBC
+Using `sprintf()` on _interval_ column of _dailypattern_ to format it into 4 
+digit format. Next, `strptime()` is performed on the formatted _interval_ column
+to convert it into a proper time type. Then the new time type _dateinterval_
+column is binded into _dailypattern_ using `cbind()`
 
 ```r
 dateinterval<-strptime(sprintf("%04d", dailypattern$interval), format="%H%M")
-```
-
-With the time sequence generated and properly formatted, `mutate()` is used
-to replace the current numeric _interval_ to the time based _interval_.
-
-```r
 dailypattern<- cbind(dailypattern,dateinterval)
 ```
 
@@ -234,11 +231,65 @@ added to the mean calculation while keeping the median the same.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
+In order to plot the time series to determine if there are differences in
+activity patterns between weekdays and weekends, the column _interval_ from 
+the dataset must be converted from numeric data type to time type, like in
+previous part of the assignment.
+
+Using `sprintf()` on _interval_ column of _dailypattern_ to format it into 4 
+digit format. Next, `strptime()` is performed on the formatted _interval_ column
+to convert it into a proper time type. Then the new time type _imputinterval_
+column is binded into _imputdata_ using `cbind()`
+
+```r
+imputinterval<-strptime(sprintf("%04d", imputdata$interval), format="%H%M")
+imputdata<- cbind(imputdata,imputinterval)
+```
+
+In order to determine whether a date is weekday or weekend, `weekdays()` is
+applied to _date_ column of _imputdata_ from the previous step and the result
+is added to a new _day_ column with the string of days in the week.
+
+Next, a nested `ifelse()` is performed on _day_ column to change string of days
+into 0 if it is a weekday and 1 if it is a weekend. Following this, `factor()`
+is applied to the now numeric _day_ column to tag 0s as "Weekday" and
+1s as "Weekend".
+
+Lastly, `select()` is used to pick up the time type _imputinterval_,
+_day_ and _steps_ to properly format the imputed data for the time series plot.
 
 ```r
 imputweekdays<- imputdata %>%
     mutate(day=weekdays(as.Date(imputdata$date))) %>%
     mutate(day=ifelse(day=="Saturday",1,ifelse(day=="Sunday",1,0))) %>%
     mutate(day=factor(day,labels = c("Weekday", "Weekend"))) %>%
-    select(date,interval,day,steps)
+    select(imputinterval,day,steps)
 ```
+
+To obtain the average of steps across all interval for weekdays and weekends,
+`group_by()` is performed first on _day_ then _imputinterval_ column. Lastly, 
+`mean()` of the steps are computed according to the grouping.
+
+```r
+weekdaypattern<-imputweekdays %>% 
+    group_by(day,imputinterval) %>% 
+    summarize(steps = mean(steps,na.rm=TRUE))
+```
+
+Finally, the plot for Average steps on a weekday vs weekend are achieved
+using `plot()` through _steps_ as x-axis and _imputinterval_ as y-axis.
+
+```r
+par(mfrow=c(2,1))
+plot(weekdaypattern[weekdaypattern$day=="Weekday",]$imputinterval,
+     weekdaypattern[weekdaypattern$day=="Weekday",]$steps,type="l",
+     main="Average Steps taken on a Weekday",
+     xlab="Interval",ylab="Average Steps")
+
+plot(weekdaypattern[weekdaypattern$day=="Weekend",]$imputinterval,
+     weekdaypattern[weekdaypattern$day=="Weekend",]$steps,type="l",
+     main="Average Steps taken on a Weekend",
+     xlab="Interval",ylab="Average Steps")
+```
+
+![](PA1_template_files/figure-html/weekdayplot-1.png) 
