@@ -96,32 +96,20 @@ In order to plot the time series for the average daily pattern,
 the column _interval_ from the dataset must be converted from numeric data type
 to time type. 
 
-Since the _interval_ encompasses 1 day in 5 minutes interval,
-`seq.POSIXt()` was used to generate a time sequence by 5 minutes with 
-`Sys.Date()` and `Sys.Date()+1` as the limis of the generated time sequence.
-After the time sequence is generated, `format()` is used to extract the
-hours and minutes that corresponds to the _interval_ column from the dataset.
+TBC
 ```{r timeinterval, echo=TRUE}
-mininterval<-as.POSIXct(Sys.Date())
-
-maxinterval<-as.POSIXct(Sys.Date()+1)
-
-dateinterval<-seq.POSIXt(mininterval, maxinterval, by = "5 min")
-
-dateinterval<-format( dateinterval,"%H%M", tz="SGT")
+dateinterval<-strptime(sprintf("%04d", dailypattern$interval), format="%H%M")
 ```
 
-With the time sequence generated and properly formatted, `mutate()` is used
-to replace the current numeric _interval_ to the time based _interval_.
+TBC
 ```{r mutatetime}
-dailypattern<- dailypattern %>%
-    mutate(interval=dateinterval[1:288])
+dailypattern<- cbind(dailypattern,dateinterval)
 ```
 
 Lastly, time series plot is achieved by plotting the time interval against 
 steps with proper labels for the plot.
 ```{r timeseriesplot, echo=TRUE}
-plot(dailypattern$interval,
+plot(dailypattern$dateinterval,
      dailypattern$steps,type="l",
      main="Average Daily Activity Pattern",
      xlab="Daily Interval of 5 minutes",
@@ -149,7 +137,7 @@ The total number of missing values in the dataset is `r num.na`
 
 ### 2) Strategy for filling in all missing values in dataset
 
-1. Obtain the median of steps for each interval per day
+1) Obtain the median of steps for each interval per day
 ```{r dailymedian, echo=TRUE}
 dailymedian<-activity %>% 
     group_by(interval) %>% 
@@ -166,7 +154,55 @@ imputdata<- activity %>%
     mutate(steps=ifelse(is.na(steps), mediansteps, steps))
 ```
 
-4. Histogram of the total number of steps taken each day and the mean 
+4) Histogram of the total number of steps taken each day and the mean 
 and median total number of steps taken per day.
 
+The total number of steps taken each day for the imputed data is calculated
+using `group_by()` on _date_ then `sum()` on _steps_
+```{r imputtotalsteps,echo=TRUE}
+imputtotalsteps <- imputdata %>% 
+    group_by(date) %>% 
+    summarize(steps = sum(steps,na.rm=TRUE))
+```
+
+The histogram shows the distribution of the total number of steps per day on 
+the imputed data.
+```{r imputhistogram, echo=TRUE}
+hist(imputtotalsteps$steps,
+     breaks=10,
+     col="orange",
+     main="Total number of steps taken per day (imputed)",
+     xlab="Total steps per day",
+     ylab="Percentage of total steps taken per day")
+```
+
+The mean and median total steps per day is calculated with its corresponding 
+functions and presented in the table.
+```{r imputmeanmedian, echo=TRUE}
+meanimputsteps<-mean(imputtotalsteps$steps)
+
+medianimputsteps<-median(imputtotalsteps$steps)
+```
+
+| mean total steps per day | median total steps per day | 
+| ---- | ------ | 
+| `r meanimputsteps` | `r medianimputsteps` | 
+
+With the NA values imputed with the average median steps of the dataset for a
+particular interval, only the mean of the imputed data is different from the
+estimates from the first part of the assignment.
+
+The mean is now `r meanimputsteps` as compared to `r meansteps` previously. 
+The imputing of data has caused the mean of the dataset to shift higher as 
+median of the average of steps in a particular interval across the dataset is
+added to the mean calculation while keeping the median the same.
+
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r weekdays}
+imputweekdays<- imputdata %>%
+    mutate(day=weekdays(as.Date(imputdata$date))) %>%
+    mutate(day=ifelse(day=="Saturday",1,ifelse(day=="Sunday",1,0))) %>%
+    mutate(day=factor(day,labels = c("Weekday", "Weekend"))) %>%
+    select(date,interval,day,steps)
+```
